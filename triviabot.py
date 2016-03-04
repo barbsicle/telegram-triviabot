@@ -26,7 +26,8 @@ chat = []
 
 
 # Define vars for the bot.
-created = {}
+custom_keyboard = {}
+reply_markup = {}
 change = {}
 changing = {}
 trivia_in_session = {}
@@ -43,6 +44,7 @@ score = {}
 i = {}
 n = {}
 attempt = {}
+attempt_by = {}
 topscorer = {}
 t1 = {}
 t2 = {}
@@ -51,10 +53,11 @@ t2 = {}
 # Define a few (command) handlers. These usually take the two arguments bot and
 # update. Error handlers also receive the raised TelegramError object in error.
 def start(bot, update):
+    global chat
     last_chat_id = update.message.chat_id
-    if not (last_chat_id in created):
-        created[last_chat_id] = True
-        print('[DEBUG] First time user/chat. Chat ID is ' + str(last_chat_id) + '. Setting variables....')
+    if not (last_chat_id in chat):
+        chat.append(last_chat_id)
+        logger.info('[DEBUG] First time user/chat. Chat ID is ' + str(last_chat_id) + '. Setting variables....')
         change[last_chat_id] = False
         changing[last_chat_id] = 0
         trivia_in_session[last_chat_id] = False
@@ -62,27 +65,28 @@ def start(bot, update):
         trivia_timer[last_chat_id] = 20
         time_between_questions[last_chat_id] = 3
         session_length[last_chat_id] = 5
-        qnfile[last_chat_id] = 'questions_wow'
+        qnfile[last_chat_id] = 'questions_gk'
         qn[last_chat_id] = ''
         ans1[last_chat_id] = []
         ans[last_chat_id] = []
         bank[last_chat_id] = {}
         score[last_chat_id] = {}
-        print('[DEBUG] Variables set for Chat ' + str(last_chat_id) + '.')
-    custom_keyboard = [['/trivia', '/settings', '/help']]
-    reply_markup = telegram.ReplyKeyboardMarkup(custom_keyboard)
+        logger.info('[DEBUG] Variables set for Chat ' + str(last_chat_id) + '.')
+    else:
+        logger.info('[DEBUG Variables already set for Chat ' + str(last_chat_id) + '.')
+    custom_keyboard[last_chat_id] = [['/trivia', '/settings', '/help']]
+    reply_markup[last_chat_id] = telegram.ReplyKeyboardMarkup(custom_keyboard[last_chat_id])
     bot.sendMessage(update.message.chat_id, text='Hi and welcome to Shing\'s Trivia Bot!\n'
-                    'You can start by trying one of the buttons below.', reply_markup=reply_markup)
+                    'Setup for trivia is complete.\n'
+                    'You can start by trying one of the buttons below.', reply_markup=reply_markup[last_chat_id])
 
 
 def help(bot, update):
-    custom_keyboard = [['/start', '/trivia', '/settings']]
-    reply_markup = telegram.ReplyKeyboardMarkup(custom_keyboard)
-    bot.sendMessage(update.message.chat_id, text='Command List\n'
-                                             '/start - Welcome message\n'
-                                             '/trivia - Starts a trivia session\n'
-                                             '/stop - Stops a trivia session if in progress \n',
-                                             reply_markup=reply_markup)
+    custom_keyboard[last_chat_id] = [['/start', '/trivia', '/settings']]
+    reply_markup[last_chat_id] = telegram.ReplyKeyboardMarkup(custom_keyboard)
+    bot.sendMessage(update.message.chat_id, text='Command List\n/start - Welcome message\n'
+                    '/trivia - Starts a trivia session\n/stop - Stops a trivia session if in progress \n',
+                    reply_markup=reply_markup[last_chat_id])
 
 
 # Settings page
@@ -90,35 +94,37 @@ def settings(bot, update):
     last_chat_id = update.message.chat_id
     change[last_chat_id] = True
     changing[last_chat_id] = 0
-    custom_keyboard = [['Time per Question', 'Questions per Round', 'EXIT']]
-    reply_markup = telegram.ReplyKeyboardMarkup(custom_keyboard)
-    bot.sendMessage(update.message.chat_id, text="What setting do you want to change?", reply_markup=reply_markup)
+    custom_keyboard[last_chat_id] = [['Time per Question', 'Questions per Round', 'EXIT']]
+    reply_markup[last_chat_id] = telegram.ReplyKeyboardMarkup(custom_keyboard)
+    bot.sendMessage(update.message.chat_id, text="What setting do you want to change?", reply_markup=reply_markup[last_chat_id])
 
 
 # Settings progress menu 1
 def changesettings(bot, update):
     global change
     global changing
+    global custom_keyboard
+    global reply_markup
     last_chat_id = update.message.chat_id
     if change[last_chat_id] and update.message.text == 'Time per Question':
-        custom_keyboard = [['5', '10', '15', '20', '25', '30', 'EXIT']]
-        reply_markup = telegram.ReplyKeyboardMarkup(custom_keyboard)
-        bot.sendMessage(update.message.chat_id, text="How many seconds would you like to set per question?", reply_markup=reply_markup)
+        custom_keyboard[last_chat_id] = [['5', '10', '15', '20', '25', '30', 'EXIT']]
+        reply_markup[last_chat_id] = telegram.ReplyKeyboardMarkup(custom_keyboard[last_chat_id])
+        bot.sendMessage(update.message.chat_id, text="How many seconds would you like to set per question?", reply_markup=reply_markup[last_chat_id])
         changing[last_chat_id] = 1
     elif change[last_chat_id] and update.message.text == 'Questions per Round':
-        custom_keyboard = [['5', '10', '15', '20', '25', '30', 'EXIT']]
-        reply_markup = telegram.ReplyKeyboardMarkup(custom_keyboard)
-        bot.sendMessage(update.message.chat_id, text="How many questions would you like to set per round??", reply_markup=reply_markup)
+        custom_keyboard[last_chat_id] = [['5', '10', '15', '20', '25', '30', 'EXIT']]
+        reply_markup[last_chat_id] = telegram.ReplyKeyboardMarkup(custom_keyboard)
+        bot.sendMessage(update.message.chat_id, text="How many questions would you like to set per round??", reply_markup=reply_markup[last_chat_id])
         changing[last_chat_id] = 2
     elif change[last_chat_id] and update.message.text == 'EXIT':
-        custom_keyboard = [['/trivia', '/settings', '/help']]
-        reply_markup = telegram.ReplyKeyboardMarkup(custom_keyboard)
-        bot.sendMessage(update.message.chat_id, text="Exited settings.", reply_markup=reply_markup)
+        custom_keyboard[last_chat_id] = [['/trivia', '/settings', '/help']]
+        reply_markup[last_chat_id] = telegram.ReplyKeyboardMarkup(custom_keyboard[last_chat_id])
+        bot.sendMessage(update.message.chat_id, text="Exited settings.", reply_markup=reply_markup[last_chat_id])
         change[last_chat_id] = False
         changing[last_chat_id] = 0
     elif change[last_chat_id] and changing[last_chat_id] == 0 and update.message.text != 'Questions per Round' and update.message.text != 'Time per Question':
-        reply_markup = telegram.ReplyKeyboardHide()
-        bot.sendMessage(update.message.chat_id, text="Error: Invalid choice.", reply_markup=reply_markup)
+        reply_markup[last_chat_id] = telegram.ReplyKeyboardHide()
+        bot.sendMessage(update.message.chat_id, text="Error: Invalid choice.", reply_markup=reply_markup[last_chat_id])
         change[last_chat_id] = False
         changing[last_chat_id] = 0
 
@@ -127,26 +133,28 @@ def changesettings(bot, update):
 def changeprogress(bot, update):
     global change
     global changing
+    global custom_keyboard
+    global reply_markup
     last_chat_id = update.message.chat_id
     if changing[last_chat_id] == 1 and update.message.text != 'Time per Question':
-        trivia_timer = int(update.message.text)
-        custom_keyboard = [['/trivia', '/help', '/settings']]
-        reply_markup = telegram.ReplyKeyboardMarkup(custom_keyboard)
-        bot.sendMessage(update.message.chat_id, text="Setting successfully applied.", reply_markup=reply_markup)
+        trivia_timer[last_chat_id] = int(update.message.text)
+        custom_keyboard[last_chat_id] = [['/trivia', '/help', '/settings']]
+        reply_markup[last_chat_id] = telegram.ReplyKeyboardMarkup(custom_keyboard[last_chat_id])
+        bot.sendMessage(update.message.chat_id, text="Setting successfully applied.", reply_markup=reply_markup[last_chat_id])
         logger.info('[DEBUG]: Time per question set to ' + str(trivia_timer))
         change[last_chat_id] = False
         changing[last_chat_id] = 0
     elif changing[last_chat_id] == 2 and update.message.text != 'Questions per Round':
-        session_length = int(update.message.text)
-        custom_keyboard = [['/trivia', '/help', '/settings']]
-        reply_markup = telegram.ReplyKeyboardMarkup(custom_keyboard)
-        bot.sendMessage(update.message.chat_id, text="Setting successfully applied.", reply_markup=reply_markup)
+        session_length[last_chat_id] = int(update.message.text)
+        custom_keyboard[last_chat_id] = [['/trivia', '/help', '/settings']]
+        reply_markup[last_chat_id] = telegram.ReplyKeyboardMarkup(custom_keyboard[last_chat_id])
+        bot.sendMessage(update.message.chat_id, text="Setting successfully applied.", reply_markup=reply_markup[last_chat_id])
         logger.info('[DEBUG]: Questions per round set to ' + str(session_length))
         change[last_chat_id] = False
         changing[last_chat_id] = 0
     elif changing[last_chat_id] == 1 and update.message.text == 'EXIT' or changing[last_chat_id] == 2 and update.message.text == 'EXIT':
-        reply_markup = telegram.ReplyKeyboardHide()
-        bot.sendMessage(update.message.chat_id, text="Exited settings.", reply_markup=reply_markup)
+        reply_markup[last_chat_id] = telegram.ReplyKeyboardHide()
+        bot.sendMessage(update.message.chat_id, text="Exited settings.", reply_markup=reply_markup[last_chat_id])
         change[last_chat_id] = False
         changing[last_chat_id] = 0
 
@@ -156,26 +164,30 @@ def trivia(bot, update):
     global i
     global trivia_in_session
     last_chat_id = update.message.chat_id
-    if trivia_in_session[last_chat_id]:
+    # Exception for not using /start to set up variables..
+    if not (last_chat_id in chat):
+        bot.sendMessage(update.message.chat_id, text='Error! Please use the /start command to set up the bot.')
+    # Exception for trivia already in session.
+    elif trivia_in_session[last_chat_id]:
         bot.sendMessage(update.message.chat_id, text='Error! Trivia session already in progress!')
     else:
         trivia_in_session[last_chat_id] = True
-        setup(bot, update)
-        reply_markup = telegram.ReplyKeyboardHide()
+        setup(bot, update, last_chat_id)
+        reply_markup[last_chat_id] = telegram.ReplyKeyboardHide()
         bot.sendMessage(update.message.chat_id, text='Trivia session starting. Get ready!\n'
                                                      'This round has %i questions.\n'
                                                      'Each question has a timer of %i seconds.\n'
                                                      'Note: You can stop the session at any time with /stop.' %
-                                                     (session_length[last_chat_id], trivia_timer[last_chat_id]), reply_markup = reply_markup)
-        setup(bot, update)
+                                                     (session_length[last_chat_id], trivia_timer[last_chat_id]),
+                                                      reply_markup=reply_markup[last_chat_id])
+        logger.info('[DEBUG] Trivia session started for Chat ' + str(last_chat_id))
         i[last_chat_id] = session_length[last_chat_id]
-        sendquestion(bot, update)
+        sendquestion(bot, update, last_chat_id)
 
 
 # Puts the "question" list into a dictionary called "bank".
-def setup(bot, update):
+def setup(bot, update, last_chat_id):
     global bank
-    last_chat_id = update.message.chat_id
     with open(qnfile[last_chat_id], 'r') as f:
         for line in f:
             (key, val) = line.split(' = ')
@@ -184,14 +196,13 @@ def setup(bot, update):
 
 
 # Prepares and prints a question from the "questions" list.
-def sendquestion(bot, update):
+def sendquestion(bot, update, last_chat_id):
     global qn
     global ans1
     global ans
     global trivia_await_answer
     global t1
     global t2
-    last_chat_id = update.message.chat_id
     bot.sendMessage(update.message.chat_id, text='Preparing the next question...')
     n[last_chat_id] = randint(1, len(bank[last_chat_id])/2)
     qn[last_chat_id] = bank[last_chat_id]['Question' + str(n[last_chat_id])]
@@ -199,6 +210,7 @@ def sendquestion(bot, update):
     ans[last_chat_id] = [x.lower() for x in ans1[last_chat_id]]
     sleep(time_between_questions[last_chat_id])
     bot.sendMessage(update.message.chat_id, text='[TRIVIA] %s' % qn[last_chat_id])
+    logger.info('[DEBUG] Sent question %i to Chat %i.' % (n[last_chat_id], last_chat_id))
     trivia_await_answer[last_chat_id] = True
     t1[last_chat_id] = Timer(trivia_timer[last_chat_id]/2, promptanswer, args=(bot, update, last_chat_id))
     t2[last_chat_id] = Timer(trivia_timer[last_chat_id], noanswer, args=(bot, update, last_chat_id))
@@ -207,6 +219,7 @@ def sendquestion(bot, update):
         t2[last_chat_id].start()
 
 
+# Check if question is answered correctly.
 def checkanswer(bot, update):
     global trivia_await_answer
     global trivia_in_session
@@ -216,9 +229,12 @@ def checkanswer(bot, update):
     global score
     last_chat_id = update.message.chat_id
     attempt[last_chat_id] = update.message.text.lower()
+    attempt_by[last_chat_id] = update.message.from_user.first_name
     if trivia_await_answer[last_chat_id] and attempt[last_chat_id] in ans[last_chat_id]:
         trivia_await_answer[last_chat_id] = False
-        bot.sendMessage(update.message.chat_id, text='%s is Correct!' % update.message.from_user.first_name)
+        bot.sendMessage(update.message.chat_id, text='Ding! %s is correct and gets 1 point!' % attempt_by[last_chat_id])
+        logger.info('[DEBUG] %s from Chat %i answered question %i correctly with %s.' %
+                    (attempt_by, last_chat_id, n[last_chat_id], attempt[last_chat_id]))
         # Add score.
         if update.message.from_user.first_name in score[last_chat_id]:
             score[last_chat_id][update.message.from_user.first_name] += 1
@@ -231,21 +247,16 @@ def checkanswer(bot, update):
         i[last_chat_id] -= 1
         logger.info('[DEBUG] Questions Left for Chat ' + str(last_chat_id) + ': ' + str(i[last_chat_id]))
         if i[last_chat_id] > 0:
-            sendquestion(bot, update)
+            sendquestion(bot, update, last_chat_id)
         elif i[last_chat_id] == 0:
-            bot.sendMessage(update.message.chat_id, text='Trivia session ended. Thanks for playing!')
-            topscorer[last_chat_id] = max(score.keys(), key=(lambda k: score[k]))
-            bot.sendMessage(update.message.chat_id, text='The top scorer was %s with a score of %i.' %
-                                                         (topscorer[last_chat_id], score[last_chat_id][topscorer]))
-            i[last_chat_id] = session_length[last_chat_id]
-            trivia_in_session[last_chat_id] = False
-            score[last_chat_id] = {}
+            finishtrivia(bot, update, last_chat_id)
 
 
-# Prompt for an answer with 5 seconds remaining.
+# Prompt for an answer with half time remaining.
 def promptanswer(bot, update, last_chat_id):
     if trivia_await_answer[last_chat_id]:
         bot.sendMessage(update.message.chat_id, text='%i seconds remaining!' % (trivia_timer[last_chat_id]/2))
+        logger.info('[DEBUG] Sent half time remaining to Chat ' + str(last_chat_id))
 
 
 # Did not get an answer within the time period.
@@ -258,19 +269,26 @@ def noanswer(bot, update, last_chat_id):
         trivia_await_answer[last_chat_id] = False
         bot.sendMessage(update.message.chat_id, text='Time\'s up! Unfortunately, no one got the answer :(\n'
                                                      'The correct answer was: %s' % ans1[last_chat_id][0])
+        logger.info('[DEBUG] Time\'s up for Chat %i Question %i' % (last_chat_id, n[last_chat_id]))
         logger.info('[DEBUG] Current score sheet for Chat ' + str(last_chat_id) + ': ' + str(score[last_chat_id]))
+        # Check loop (no need to add score).
         i[last_chat_id] -= 1
         logger.info('[DEBUG] Questions Left for Chat ' + str(last_chat_id) + ': ' + str(i[last_chat_id]))
         if i[last_chat_id] > 0:
-            sendquestion(bot, update)
+            sendquestion(bot, update, last_chat_id)
         elif i[last_chat_id] == 0:
-            bot.sendMessage(update.message.chat_id, text='Trivia session ended. Thanks for playing!')
-            topscorer = max(score.keys(), key=(lambda k: score[k]))
-            bot.sendMessage(update.message.chat_id, text='The top scorer was %s with a score of %i.' %
-                                                         (topscorer[last_chat_id], score[last_chat_id][topscorer]))
-            i[last_chat_id] = session_length[last_chat_id]
-            trivia_in_session[last_chat_id] = False
-            score[last_chat_id] = {}
+            finishtrivia(bot, update, last_chat_id)
+
+
+def finishtrivia(bot, update, last_chat_id):
+    bot.sendMessage(update.message.chat_id, text='Trivia session ended. Thanks for playing!')
+    topscorer[last_chat_id] = max(score[last_chat_id].keys(), key=(lambda k: score[last_chat_id][k]))
+    bot.sendMessage(update.message.chat_id, text='The top scorer was %s with a score of %i.' %
+                                                 (topscorer[last_chat_id], score[last_chat_id][topscorer[last_chat_id]]))
+    logger.info('[DEBUG] Chat %i trivia session ended. Logging data (NOT IMPLEMENTED YET).' % last_chat_id)
+    i[last_chat_id] = session_length[last_chat_id]
+    trivia_in_session[last_chat_id] = False
+    score[last_chat_id] = {}
 
 
 # Check if trivia is in session and if so, stops it.
