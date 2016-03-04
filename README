@@ -1,0 +1,4 @@
+# telegram-triviabot
+Experimental triviabot for Telegram.
+Currently has a timer (20 secs), session (5 questions), and scoreboard.
+Work in Progress.
