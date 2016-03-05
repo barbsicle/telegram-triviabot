@@ -10,6 +10,7 @@ import telegram
 from random import randint
 from threading import Timer
 from time import sleep
+from time import time
 import logging
 
 
@@ -49,6 +50,10 @@ attempt_by = {}
 topscorer = {}
 t1 = {}
 t2 = {}
+answertime = {}
+timestart = {}
+timeend = {}
+timetaken = {}
 
 
 # Mandatory /start command. Rune at least once required to set the variables for the entire trivia game.
@@ -86,6 +91,7 @@ def setvars(bot, update, last_chat_id):
     score[last_chat_id] = {}
     n[last_chat_id] = 0
     i[last_chat_id] = 0
+    answertime[last_chat_id] = {}
 
 
 def help(bot, update):
@@ -259,6 +265,7 @@ def sendquestion(bot, update, last_chat_id):
     t1[last_chat_id] = Timer(trivia_timer[last_chat_id]/2, promptanswer, args=(bot, update, last_chat_id))
     t2[last_chat_id] = Timer(trivia_timer[last_chat_id], noanswer, args=(bot, update, last_chat_id))
     if trivia_await_answer[last_chat_id]:
+        timestart[last_chat_id] = time()
         t1[last_chat_id].start()
         t2[last_chat_id].start()
 
@@ -271,10 +278,14 @@ def checkanswer(bot, update):
     if last_chat_id in chat:
         if trivia_await_answer[last_chat_id] and attempt[last_chat_id].lower() in ans[last_chat_id]:
             trivia_await_answer[last_chat_id] = False
+            timeend[last_chat_id] = time()
+            timetaken[last_chat_id] = timeend[last_chat_id] - timestart[last_chat_id]
             bot.sendMessage(update.message.chat_id, text='Ding! %s answered correctly with \"%s\" and gets 1 point!' %
                                                          (attempt_by[last_chat_id], attempt[last_chat_id]))
-            logger.info('[DEBUG] %s from Chat %i answered question %i correctly with %s.' %
-                        (attempt_by[last_chat_id], last_chat_id, n[last_chat_id], attempt[last_chat_id]))
+            logger.info('[DEBUG] %s from Chat %i answered question %i in %i seconds.' %
+                        (attempt_by[last_chat_id], last_chat_id, n[last_chat_id], timetaken[last_chat_id]))
+            # Save time taken to answer the question.
+            answertime[last_chat_id][str(qnfile[last_chat_id]) + str(n[last_chat_id])] = timetaken[last_chat_id]
             # Add score.
             if update.message.from_user.first_name in score[last_chat_id]:
                 score[last_chat_id][update.message.from_user.first_name] += 1
