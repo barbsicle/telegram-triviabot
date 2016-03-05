@@ -96,7 +96,7 @@ def setvars(bot, update, last_chat_id):
 
 def help(bot, update):
     custom_keyboard[last_chat_id] = [['/start', '/trivia', '/settings']]
-    reply_markup[last_chat_id] = telegram.ReplyKeyboardMarkup(custom_keyboard)
+    reply_markup[last_chat_id] = telegram.ReplyKeyboardMarkup(custom_keyboard[last_chat_id])
     bot.sendMessage(update.message.chat_id, text='Command List\n/start - Welcome message\n'
                     '/trivia - Starts a trivia session\n/stop - Stops a trivia session if in progress \n',
                     reply_markup=reply_markup[last_chat_id])
@@ -105,12 +105,15 @@ def help(bot, update):
 # Settings page
 def settings(bot, update):
     last_chat_id = update.message.chat_id
-    change[last_chat_id] = True
-    changing[last_chat_id] = 0
-    custom_keyboard[last_chat_id] = [['Time per Question', 'Questions per Round', 'EXIT']]
-    reply_markup[last_chat_id] = telegram.ReplyKeyboardMarkup(custom_keyboard)
-    bot.sendMessage(update.message.chat_id, text="What setting do you want to change?",
-                    reply_markup=reply_markup[last_chat_id])
+    if last_chat_id in chat:
+        change[last_chat_id] = True
+        changing[last_chat_id] = 0
+        custom_keyboard[last_chat_id] = [['Time per Question', 'Questions per Round', 'EXIT']]
+        reply_markup[last_chat_id] = telegram.ReplyKeyboardMarkup(custom_keyboard[last_chat_id])
+        bot.sendMessage(update.message.chat_id, text="What setting do you want to change?",
+                        reply_markup=reply_markup[last_chat_id])
+    else:
+        bot.sendMessage(update.message.chat_id, text='Error! Please use the /start command to set up the bot.')
 
 
 # Settings progress menu 1
@@ -125,7 +128,7 @@ def changesettings(bot, update):
     elif True in change.values() and update.message.text == 'Questions per Round':
         last_chat_id = update.message.chat_id
         custom_keyboard[last_chat_id] = [['5', '10', '15', '20', '25', '30', 'EXIT']]
-        reply_markup[last_chat_id] = telegram.ReplyKeyboardMarkup(custom_keyboard)
+        reply_markup[last_chat_id] = telegram.ReplyKeyboardMarkup(custom_keyboard[last_chat_id])
         bot.sendMessage(update.message.chat_id, text="How many questions would you like to set per round??",
                         reply_markup=reply_markup[last_chat_id])
         changing[last_chat_id] = 2
@@ -137,12 +140,7 @@ def changesettings(bot, update):
         change[last_chat_id] = False
         changing[last_chat_id] = 0
     elif True in change.values() and update.message.text != 'Questions per Round' and update.message.text != 'Time per Question':
-        last_chat_id = update.message.chat_id
-        reply_markup[last_chat_id] = telegram.ReplyKeyboardHide()
-        bot.sendMessage(update.message.chat_id, text="Error: Invalid choice.", reply_markup=reply_markup[last_chat_id])
-        change[last_chat_id] = False
-        changing[last_chat_id] = 0
-
+        logger.info('[DEBUG] Chat selected an invalid setting.')
 
 # Settings progress menu 2
 def changeprogress(bot, update):
@@ -154,7 +152,7 @@ def changeprogress(bot, update):
             reply_markup[last_chat_id] = telegram.ReplyKeyboardMarkup(custom_keyboard[last_chat_id])
             bot.sendMessage(update.message.chat_id, text="Setting successfully applied.",
                             reply_markup=reply_markup[last_chat_id])
-            logger.info('[DEBUG]: Time per question set to ' + str(trivia_timer))
+            logger.info('[DEBUG]: Time per question set to ' + str(trivia_timer[last_chat_id]))
             change[last_chat_id] = False
             changing[last_chat_id] = 0
         elif changing[last_chat_id] == 2 and update.message.text != 'Questions per Round':
@@ -163,7 +161,7 @@ def changeprogress(bot, update):
             reply_markup[last_chat_id] = telegram.ReplyKeyboardMarkup(custom_keyboard[last_chat_id])
             bot.sendMessage(update.message.chat_id, text="Setting successfully applied.",
                             reply_markup=reply_markup[last_chat_id])
-            logger.info('[DEBUG]: Questions per round set to ' + str(session_length))
+            logger.info('[DEBUG]: Questions per round set to ' + str(session_length[last_chat_id]))
             change[last_chat_id] = False
             changing[last_chat_id] = 0
         elif changing[last_chat_id] == 1 and update.message.text == 'EXIT' or changing[last_chat_id] == 2 and \
@@ -197,27 +195,27 @@ def trivia(bot, update):
 # Select question list or category, then start the trivia session.
 def category(bot, update):
     last_chat_id = update.message.chat_id
-    if changing[last_chat_id] == -1 and update.message.text == 'General Knowledge':
-        qnfile[last_chat_id] = 'questions_gk'
-        logger.info('[DEBUG] Category for Chat %i set to General Knowledge.' % last_chat_id)
-        bot.sendMessage(update.message.chat_id, text="Category set: General Knowledge")
-        triviastart(bot, update, last_chat_id)
-        changing[last_chat_id] = 0
-    elif changing[last_chat_id] == -1 and update.message.text == 'World of Warcraft':
-        qnfile[last_chat_id] = 'questions_wow'
-        logger.info('[DEBUG] Category for Chat %i set to World of Warcraft.' % last_chat_id)
-        bot.sendMessage(update.message.chat_id, text="Category set: World of Warcraft")
-        triviastart(bot, update, last_chat_id)
-        changing[last_chat_id] = 0
-    elif changing[last_chat_id] == -1 and update.message.text == 'Football':
-        qnfile[last_chat_id] = 'questions_football'
-        logger.info('[DEBUG] Category for Chat %i set to Football.' % last_chat_id)
-        bot.sendMessage(update.message.chat_id, text="Category set: Football")
-        triviastart(bot, update, last_chat_id)
-        changing[last_chat_id] = 0
-    elif changing[last_chat_id] == -1:
-        bot.sendMessage(update.message.chat_id, text='Error! Invalid category. Try /start again.')
-        logger.info('[DEBUG] Something went wrong. Chat selected an invalid category.')
+    if last_chat_id in chat:
+        if changing[last_chat_id] == -1 and update.message.text == 'General Knowledge':
+            qnfile[last_chat_id] = 'questions_gk'
+            logger.info('[DEBUG] Category for Chat %i set to General Knowledge.' % last_chat_id)
+            bot.sendMessage(update.message.chat_id, text="Category set: General Knowledge")
+            triviastart(bot, update, last_chat_id)
+            changing[last_chat_id] = 0
+        elif changing[last_chat_id] == -1 and update.message.text == 'World of Warcraft':
+            qnfile[last_chat_id] = 'questions_wow'
+            logger.info('[DEBUG] Category for Chat %i set to World of Warcraft.' % last_chat_id)
+            bot.sendMessage(update.message.chat_id, text="Category set: World of Warcraft")
+            triviastart(bot, update, last_chat_id)
+            changing[last_chat_id] = 0
+        elif changing[last_chat_id] == -1 and update.message.text == 'Football':
+            qnfile[last_chat_id] = 'questions_football'
+            logger.info('[DEBUG] Category for Chat %i set to Football.' % last_chat_id)
+            bot.sendMessage(update.message.chat_id, text="Category set: Football")
+            triviastart(bot, update, last_chat_id)
+            changing[last_chat_id] = 0
+        elif changing[last_chat_id] == -1:
+            logger.info('[DEBUG] Chat selected an invalid category.')
 
 
 def triviastart(bot, update, last_chat_id):
@@ -307,7 +305,7 @@ def checkanswer(bot, update):
 def promptanswer(bot, update, last_chat_id):
     if trivia_await_answer[last_chat_id]:
         bot.sendMessage(update.message.chat_id, text='%i seconds remaining!' % (trivia_timer[last_chat_id]/2))
-        logger.info('[DEBUG] Sent half time remaining to Chat ' + str(last_chat_id))
+        logger.info('[DEBUG] Sent half time remaining to Chat ' + str(last_chat_id) + '.')
 
 
 # Did not get an answer within the time period.
